@@ -1,0 +1,250 @@
+
+openapi: 3.0.3
+info:
+  title: Mira P2P Note Sharing API
+  description: API for peer signaling, note metadata management, and attachment handling for the Mira P2P collaborative note-sharing app.
+  version: 1.0.0
+
+servers:
+  - url: https://api.mira-notes.com/api
+    description: Production server
+  - url: http://localhost:4000/api
+    description: Local development server
+
+paths:
+  /notes:
+    post:
+      summary: Create Note Metadata
+      operationId: createNote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNoteRequest'
+      responses:
+        '201':
+          description: Note metadata created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+
+  /notes/{id}:
+    get:
+      summary: Fetch Note Metadata
+      operationId: getNote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Note metadata retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+    delete:
+      summary: Delete Note Metadata
+      operationId: deleteNote
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Note deleted successfully
+
+  /attachments:
+    post:
+      summary: Upload Attachment
+      operationId: uploadAttachment
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                noteId:
+                  type: string
+      responses:
+        '201':
+          description: Attachment uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachment'
+
+  /attachments/{id}:
+    get:
+      summary: Fetch Attachment
+      operationId: getAttachment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Attachment retrieved as binary
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /peers/signal:
+    post:
+      summary: Send SDP Offer or Answer
+      operationId: sendSignal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignalingMessage'
+      responses:
+        '200':
+          description: Signal delivered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+
+  /peers/ice:
+    post:
+      summary: Send ICE Candidate
+      operationId: sendIceCandidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IceCandidateMessage'
+      responses:
+        '200':
+          description: ICE candidate delivered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalResponse'
+
+  /peers/available:
+    get:
+      summary: Get Available Peers
+      operationId: getAvailablePeers
+      responses:
+        '200':
+          description: List of available peers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  peers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Peer'
+
+components:
+  schemas:
+    CreateNoteRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        owner:
+          type: string
+          description: DID or user ID
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - title
+        - owner
+
+    Note:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        owner:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: string
+        noteId:
+          type: string
+        filename:
+          type: string
+        size:
+          type: integer
+
+    SignalingMessage:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        type:
+          type: string
+          enum: [offer, answer]
+        sdp:
+          type: string
+
+    IceCandidateMessage:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        candidate:
+          type: object
+          properties:
+            candidate:
+              type: string
+            sdpMid:
+              type: string
+            sdpMLineIndex:
+              type: integer
+
+    SignalResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: delivered
+
+    Peer:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [online, offline]
